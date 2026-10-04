@@ -8,89 +8,67 @@ from scipy.integrate import solve_ivp
 class Pendulum:
     g = 9.8
 
-    def __init__(self, order, length, mass):
+    def __init__(self, order, length, mass, damping=None, method='DOP853'):
+        """
+            Args:
+                order (int) : Nombre de tiges du pendule.
+                length (list) : Liste des longueurs des tiges.
+                mass (list) : Liste des masses.
+                damping (list) : Liste des coefficients d'amortissement. défaut : None.
+        """
+        if not hasattr(length, '__iter__'):
+            length = [length]
+        if not hasattr(mass, '__iter__'):
+            mass = [mass]
+
         self.order = order
         self.length = length
         self.mass = mass
+        self.damping = damping if damping is not None else [0]*order
+        self.method = method
         self.theta_indices = range(0, 2*self.order, 2)
 
-        if self.order == 1:
-            self.pendulum_to_solve = self._simple_pendulum
-        if self.order == 2:
-            self.pendulum_to_solve = self._double_pendulum
-        if self.order == 3:
-            self.M_func, self.b_func = self._calc_triple_pendulum()
-            self.pendulum_to_solve = self._triple_pendulum
-
-    def _simple_pendulum(self, t, U):
-        theta, omega = U
-        r = self.length
-
-        return [omega, -self.g/r * np.sin(theta)]
+        self.M_func, self.b_func, self.T_func, self.V_func = self._calc_general_pendulum()
+        self.pendulum_to_solve = self._general_pendulum
 
 
-    def _double_pendulum(self, t, U):
-        theta1, omega1, theta2, omega2 = U
-        dtheta = theta1 - theta2
-        s, c = np.sin(dtheta), np.cos(dtheta)
-        l1, l2 = self.length
-        m1, m2 = self.mass
-
-        delta = l1 * l2 * (m1 + m2 * s**2)
-        d_omega1 = (l2 * (-m2 * l2 * s * omega2**2 - (m1 + m2) * self.g * np.sin(theta1))
-                    - m2 * l2 * c * (l1 * s * omega1**2 - self.g * np.sin(theta2)))
-        d_omega2 = ((m1 + m2) * l1 * (l1 * s * omega1**2 - self.g * np.sin(theta2))
-                    - l1 * c * (-m2 * l2 * s * omega2**2 - (m1 + m2) * self.g * np.sin(theta1)))
-
-        return [omega1, d_omega1 / delta, omega2, d_omega2 / delta]
-
-
-    def _calc_triple_pendulum(self):
+    def _calc_general_pendulum(self):
         # Définition des constantes 
-        l1, l2, l3 = sp.symbols('l1 l2 l3', positive=True)
-        m1, m2, m3 = sp.symbols('m1 m2 m3', positive=True)
+        li = [sp.symbols(f'l{i}', positive=True) for i in range(self.order)]
+        mi = [sp.symbols(f'm{i}', positive=True) for i in range(self.order)]
+        ci = [sp.symbols(f'c{i}', nonnegative=True) for i in range(self.order)]  # ← nouveau
         g = sp.symbols('g', positive=True)
         t = sp.symbols('t')
 
         # Définition des angles comme fonctions du temps 
-        theta1 = sp.Function('theta1')(t)
-        theta2 = sp.Function('theta2')(t)
-        theta3 = sp.Function('theta3')(t)
-        
+        thetai = [sp.Function(f'theta{i}')(t) for i in range(self.order)]
 
-        x1 = l1 * sp.sin(theta1)
-        y1 = -l1 * sp.cos(theta1)
+        xi, yi = [], []
+        dxi, dyi = [], []
+        x_cum, y_cum = 0, 0
+        for i in range(self.order):
+            x_cum += li[i] * sp.sin(thetai[i])
+            y_cum +=  -li[i] * sp.cos(thetai[i])
 
-        x2 = x1 + l2 * sp.sin(theta2)
-        y2 = y1 - l2 * sp.cos(theta2)
+            xi.append(x_cum)
+            yi.append(y_cum)
 
-        x3 = x2 + l3 * sp.sin(theta3)
-        y3 = y2 - l3 * sp.cos(theta3)
+            dxi.append(sp.diff(x_cum, t))
+            dyi.append(sp.diff(y_cum, t))
 
-        dx1 = sp.diff(x1, t)
-        dy1 = sp.diff(y1, t)
-        dx2 = sp.diff(x2, t)
-        dy2 = sp.diff(y2, t)
-        dx3 = sp.diff(x3, t)
-        dy3 = sp.diff(y3, t)
-
-        # Energie cinétique
-        T = sp.Rational(1, 2) * m1 * (dx1**2 + dy1**2) + \
-            sp.Rational(1, 2) * m2 * (dx2**2 + dy2**2) + \
-            sp.Rational(1, 2) * m3 * (dx3**2 + dy3**2)
+        # Energie cinétique et potentielle
+        T, V = 0, 0
+        for k in range(self.order):
+            T += sp.Rational(1, 2) * mi[k] * (dxi[k]**2 + dyi[k]**2)
+            V += g * mi[k] * yi[k]
 
         T = sp.simplify(T)
-
-        # Energie potentielle
-        V = g * (m1 * y1 + m2 * y2 + m3 * y3)
 
         # Lagrangien
         L = sp.simplify(T - V)
 
         # Euler-Lagrange
-        omega1 = sp.diff(theta1, t)
-        omega2 = sp.diff(theta2, t)
-        omega3 = sp.diff(theta3, t)
+        omegai = [sp.diff(thetai[i], t) for i in range(self.order)]
 
         def euler_lagrange(L, theta_i, omega_i):
             dL_omega = sp.diff(L, omega_i)
@@ -98,41 +76,56 @@ class Pendulum:
             dL_theta = sp.diff(L, theta_i)
             return sp.simplify(d_dt_dL_omega - dL_theta)
 
-        eq1 = euler_lagrange(L, theta1, omega1)
-        eq2 = euler_lagrange(L, theta2, omega2)
-        eq3 = euler_lagrange(L, theta3, omega3)
+        eqi = [euler_lagrange(L, thetai[k], omegai[k]) + ci[k] * omegai[k] 
+               for k in range(self.order)]
 
         # Résolution des équations
-        theta1_dd = sp.diff(theta1, t, 2)
-        theta2_dd = sp.diff(theta2, t, 2)
-        theta3_dd = sp.diff(theta3, t, 2)
+        thetai_dd = [sp.diff(thetai[k], t, 2) for k in range(self.order)]
 
-        M, b = sp.linear_eq_to_matrix([eq1, eq2, eq3], [theta1_dd, theta2_dd, theta3_dd])
+        M, b = sp.linear_eq_to_matrix(eqi, thetai_dd)
 
-        variables = (theta1, theta2, theta3, omega1, omega2, omega3, m1, m2, m3, l1, l2, l3, g)
+        variables = tuple(thetai + omegai + mi + li + ci + [g])
+        energy_var = tuple(thetai + omegai + mi + li + [g])
+
         M_func = sp.lambdify(variables, M, modules='numpy')
         b_func = sp.lambdify(variables, b, modules='numpy')
 
-        return M_func, b_func
+        T_func = sp.lambdify(energy_var, T, modules='numpy')
+        V_func = sp.lambdify(energy_var, V, modules='numpy')
+
+        return M_func, b_func, T_func, V_func
 
 
-    def _triple_pendulum(self, t, U):
-        th1, om1, th2, om2, th3, om3 = U
-        l1_val, l2_val, l3_val = self.length
-        m1_val, m2_val, m3_val = self.mass
+    def _general_pendulum(self, t, U):
+        thetas = U[0::2]   # tous les angles : indices 0, 2, 4, ...
+        omegas = U[1::2]   # toutes les vitesses angulaires : indices 1, 3, 5, ...
 
-        M_num = self.M_func(th1, th2, th3, om1, om2, om3, m1_val, m2_val, m3_val, l1_val, l2_val, l3_val, self.g)
-        b_num = self.b_func(th1, th2, th3, om1, om2, om3, m1_val, m2_val, m3_val, l1_val, l2_val, l3_val, self.g)
+        args = list(thetas) + list(omegas) + list(self.mass) + \
+               list(self.length) + list(self.damping) + [self.g]
 
-        theta_dd = np.linalg.solve(M_num, b_num).flatten()  
+        M_num = np.array(self.M_func(*args), dtype=float)
+        b_num = np.array(self.b_func(*args), dtype=float)
 
-        return [om1, theta_dd[0], om2, theta_dd[1], om3, theta_dd[2]]
+        theta_dd = np.linalg.solve(M_num, b_num).flatten()
+
+        # reconstruit [omega1, theta_dd1, omega2, theta_dd2, ...]
+        dU = []
+        for k in range(self.order):
+            dU.append(omegas[k])
+            dU.append(theta_dd[k])
+        return dU
 
 
     def pendulum_solver(self, U_0: list, start: int, end: int, n_step: int):
         t_eval = np.linspace(start, end, n_step)
-        self.result = solve_ivp(self.pendulum_to_solve, (start, end), U_0, t_eval=t_eval)
-    
+        self.result = solve_ivp(
+            self.pendulum_to_solve, (start, end), U_0,
+            t_eval=t_eval,
+            method=self.method,
+            rtol=1e-10,
+            atol=1e-10    
+        )
+
         theta = np.array([self.result.y[i] for i in self.theta_indices])
         lengths = np.array(self.length).reshape(-1, 1)
 
@@ -142,12 +135,35 @@ class Pendulum:
         self.X = np.cumsum(dx, axis=0)
         self.Y = np.cumsum(dy, axis=0)
 
+        self.T_values, self.V_values = self._compute_energy()
+        self.E_values = self.T_values + self.V_values
 
-    def show_animation(self, fig=None, ax=None, interval=100, color='red', show=True):
+    
+    def _compute_energy(self):
+        thetas = self.result.y[0::2]
+        omegas = self.result.y[1::2]
+
+        n_step = thetas.shape[1]
+        T_arr = np.zeros(n_step)
+        V_arr = np.zeros(n_step)
+
+        for k in range(n_step):
+            args = (list(thetas[:, k]) + list(omegas[:, k])
+                + list(self.mass) + list(self.length) + [self.g])
+
+            T_arr[k] = self.T_func(*args)
+            V_arr[k] = self.V_func(*args)
+
+        return T_arr, V_arr
+
+
+    def show_animation(self, fig=None, ax=None, interval=100, color='red', show=True, title=None):
         sum_tot = np.sum(self.length)
 
         if show:
             fig, ax = plt.subplots(figsize=(6,6))
+        if title is not None:
+            ax.set_title(title)
 
         ax.set_xlim(-sum_tot*1.1, sum_tot*1.1)
         ax.set_ylim(-sum_tot*1.1, sum_tot*1.1)
