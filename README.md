@@ -31,7 +31,7 @@ $L = T - V $
 
 Soit, 
 
-$ L = (m_1 + m_2)\left( \dfrac{1}{2} l_1^2 \dot \theta_1^2 + gl_1cos\theta_1 \right) + m_2 \left ( \dfrac{1}{2}l_2^2 \dot \theta_2^2 + l_1 l_2 \dot \theta_1 \dot \theta_2 cos(\theta_1 - \theta_2) + g l_2 cos\theta_2 \right )$
+$L = (m_1 + m_2)\left( \dfrac{1}{2} l_1^2 \dot \theta_1^2 + gl_1cos\theta_1 \right) + m_2 \left ( \dfrac{1}{2}l_2^2 \dot \theta_2^2 + l_1 l_2 \dot \theta_1 \dot \theta_2 cos(\theta_1 - \theta_2) + g l_2 cos\theta_2 \right )$
 
 
 avec $T$ est l'énergie cinétique et $V$ l'énergie potentielle.
@@ -44,8 +44,7 @@ $\dfrac{d}{dt} \left( \dfrac{\partial L}{\partial \dot\theta_i} \right) - \dfrac
 
 Ceci permet d'obtenir les équations du mouvement pour $\ddot \theta_1$ et $\ddot \theta_2$ :
 
-$
-\begin{cases}
+$\begin{cases}
 (m1+m2)l_1 \ddot \theta_1 + m_2l_2cos(\theta_1-\theta_2)\ddot \theta_2 + \\ (m1+m2)gsin\theta_1 + m_2 l_2 sin(\theta_1-\theta_2) \dot \theta_2^2 = 0 \\\\
 l_2\ddot\theta_2 + l_1cos(\theta1-\theta_2)\ddot\theta_1 - l_1sin(\theta_1-\theta_2)\dot\theta_1^2 + gsin(\theta_2)=0
 \end{cases}
