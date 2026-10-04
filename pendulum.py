@@ -56,7 +56,7 @@ class Pendulum:
         theta1 = sp.Function('theta1')(t)
         theta2 = sp.Function('theta2')(t)
         theta3 = sp.Function('theta3')(t)
-
+        
 
         x1 = l1 * sp.sin(theta1)
         y1 = -l1 * sp.cos(theta1)
