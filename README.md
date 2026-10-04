@@ -45,10 +45,9 @@ $\dfrac{d}{dt} \left( \dfrac{\partial L}{\partial \dot\theta_i} \right) - \dfrac
 Ceci permet d'obtenir les équations du mouvement pour $\ddot \theta_1$ et $\ddot \theta_2$ :
 
 $\begin{cases}
-(m1+m2)l_1 \ddot \theta_1 + m_2l_2cos(\theta_1-\theta_2)\ddot \theta_2 + \\ (m1+m2)gsin\theta_1 + m_2 l_2 sin(\theta_1-\theta_2) \dot \theta_2^2 = 0 \\\\
+(m1+m2)l_1 \ddot \theta_1 + m_2l_2cos(\theta_1-\theta_2)\ddot \theta_2 + (m1+m2)gsin\theta_1 + m_2 l_2 sin(\theta_1-\theta_2) \dot \theta_2^2 = 0 \\\\
 l_2\ddot\theta_2 + l_1cos(\theta1-\theta_2)\ddot\theta_1 - l_1sin(\theta_1-\theta_2)\dot\theta_1^2 + gsin(\theta_2)=0
-\end{cases}
-$
+\end{cases}$
 
 À ce niveau là les deux équations sont encore non linéaires. Pour les linéariser, on utilise la méthode de Cramer avec les déterminants.
 
