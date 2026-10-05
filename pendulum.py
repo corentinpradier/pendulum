@@ -8,13 +8,14 @@ from scipy.integrate import solve_ivp
 class Pendulum:
     g = 9.8
 
-    def __init__(self, order, length, mass, damping=None, method='DOP853'):
+    def __init__(self, order, length, mass, damping=None, method='RK45'):
         """
             Args:
                 order (int) : Nombre de tiges du pendule.
                 length (list) : Liste des longueurs des tiges.
                 mass (list) : Liste des masses.
-                damping (list) : Liste des coefficients d'amortissement. défaut : None.
+                damping (list) : Liste des coefficients d'amortissement. Défaut : None.
+                method (str) : Méthode d'intégration. Défaut : 'RK45'.
         """
         if not hasattr(length, '__iter__'):
             length = [length]

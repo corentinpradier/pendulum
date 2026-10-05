@@ -38,7 +38,7 @@ avec $T$ est l'énergie cinétique et $V$ l'énergie potentielle.
 
 Puis on trouve les équations grâce à la formule d'Euler-Lagrange :
 
-Pour $i \in \llbracket 1 ;2 \rrbracket$ :
+Pour $i \in \{ 1 ;2 \}$ :
 
 $\dfrac{d}{dt} \left( \dfrac{\partial L}{\partial \dot\theta_i} \right) - \dfrac{\partial L}{\partial \theta_i} = 0$
 
@@ -88,8 +88,17 @@ Pour s'assurer que les équations et l'intégration numérique sont correctes, p
 
 - **Conservation de l'énergie** : sans frottement, $E = T + V$ doit rester constante au cours du temps (à la précision de l'intégrateur près) ; avec frottement, $E$ doit décroître de façon strictement monotone.
 
+<p align="center">
+<img src="img/energy_RK45.png" width="45%" alt="energy RK45">
+<img src="img/energy_DOP853.png" width="45%" alt="energy DOP853">
+</p>
 
-- **Sensibilité aux conditions initiales** : deux simulations partant d'angles initiaux quasi identiques (écart de l'ordre de $10^{-5}$ rad) doivent diverger de façon exponentielle après un certain temps — signature caractéristique du chaos.
+- **Sensibilité aux conditions initiales** : deux simulations partant d'angles initiaux quasi identiques (écart de l'ordre de $10^{-3}$ rad) doivent diverger de façon exponentielle après un certain temps — signature caractéristique du chaos.
+
+<p align="center">
+<img src="img/pendulum_2_chaos.gif" width="45%" alt="pendulum_2_chaos">
+<img src="img/euclidean_distance.png" width="45%" alt="euclidean_distance">
+</p>
 
 ## 7. Utilisation
 
